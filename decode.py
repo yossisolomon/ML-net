@@ -1,5 +1,14 @@
 #!/usr/bin/python
 
+import os
+
+startDatagram ='startDatagram =================================\n'
+endDatagram ='endDatagram   =================================\n'
+startSample = 'startSample ----------------------\n'
+endSample = 'endSample   ----------------------\n'
+disregardCounter = ['sampleType_tag','sourceId', 'counterBlock_tag', 'networkType', 'ifSpeed', 'ifDirection', 'ifStatus', 'ifInBroadcastPkts','ifInUnknownProtos','ifOutMulticastPkts','ifOutBroadcastPkts','ifPromiscuousMode']
+overloadByteRate = 1087500
+
 
 def get_interfaces_to_names_map():
     interfaces = {}
@@ -12,9 +21,6 @@ def get_interfaces_to_names_map():
     return interfaces
 
 
-
-startDatagram ='startDatagram ================================='
-endDatagram ='endDatagram ================================='
 def get_datagrams():
     datagrams = []
     with open('/tmp/sflow-datagrams') as inputFile:
@@ -25,8 +31,7 @@ def get_datagrams():
             line = inputFile.readline()
     return datagrams
 
-startSample = 'startSample ----------------------'
-endSample = 'endSample ----------------------'
+
 def get_datagram_map(inputFile):
     l = inputFile.readline()
     datagram = {}
@@ -46,27 +51,48 @@ def get_sample_map(inputFile):
     sample = {}
     while not l == endSample:
         k,v = get_key_value_from_line(l)
-        sample[k] = v
+        if not k in disregardCounter:
+            sample[k] = v
         l = inputFile.readline()
     return sample
 
+
 def get_key_value_from_line(line, delim=' '):
-    split = line.split(delim)
+    split = line.replace('\n','').split(delim)
     return split[0] , split[1]
+
 
 def create_interface_csv_files(interfaces_to_names, datagrams):
     names_to_samples = {}
     for d in datagrams:
         for s in d['samples']:
             name = interfaces_to_names[s['ifIndex']]
-            if names_to_samples[name] is None:
+            if not names_to_samples.has_key(name):
                 names_to_samples[name] = [s]
             else:
                 names_to_samples[name].append(s)
     for name, samples in names_to_samples.iteritems():
-        with open('/tmp/sflowCSV-'+name) as f:
+        with open('/tmp/sflowCSV-'+name,'w') as f:
+            prevInOctets = 0
+            prevOutOctets = 0
             for s in samples:
-                f.write(', '.join(s))
+                # only accept counter samples
+                if s['sampleType'] == 'COUNTERSSAMPLE':
+                    deltaInOctets = int(s['ifInOctets']) - prevInOctets
+                    deltaOutOctets = int(s['ifOutOctets']) - prevOutOctets
+                    values = [s['sampleSequenceNo'],
+                              s['ifInOctets'],
+                              s['ifInUcastPkts'],
+                              str(deltaInOctets),
+                              "overloadIn" if deltaInOctets > overloadByteRate else "normalIn",
+                              s['ifOutOctets'],
+                              s['ifOutUcastPkts'],
+                              str(deltaOutOctets),
+                              "overloadOut" if deltaOutOctets > overloadByteRate else "normalOut"]
+                    f.write(', '.join(values) + os.linesep)
+                    prevInOctets = int(s['ifInOctets'])
+                    prevOutOctets = int(s['ifOutOctets'])
+
 
 
 
