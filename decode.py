@@ -7,7 +7,7 @@ endDatagram ='endDatagram   =================================\n'
 startSample = 'startSample ----------------------\n'
 endSample = 'endSample   ----------------------\n'
 disregardCounter = ['sampleType_tag','sourceId', 'counterBlock_tag', 'networkType', 'ifSpeed', 'ifDirection', 'ifStatus', 'ifInBroadcastPkts','ifInUnknownProtos','ifOutMulticastPkts','ifOutBroadcastPkts','ifPromiscuousMode']
-overloadByteRate = 1087500
+overloadByteRate = 1100000
 
 
 def get_interfaces_to_names_map():
@@ -66,32 +66,32 @@ def create_interface_csv_files(interfaces_to_names, datagrams):
     names_to_samples = {}
     for d in datagrams:
         for s in d['samples']:
-            name = interfaces_to_names[s['ifIndex']]
-            if not names_to_samples.has_key(name):
-                names_to_samples[name] = [s]
-            else:
-                names_to_samples[name].append(s)
+            # only accept counter samples
+            if s['sampleType'] == 'COUNTERSSAMPLE':
+                name = interfaces_to_names[s['ifIndex']]
+                if not names_to_samples.has_key(name):
+                    names_to_samples[name] = [s]
+                else:
+                    names_to_samples[name].append(s)
     for name, samples in names_to_samples.iteritems():
         with open('/tmp/sflowCSV-'+name,'w') as f:
             prevInOctets = 0
             prevOutOctets = 0
             for s in samples:
-                # only accept counter samples
-                if s['sampleType'] == 'COUNTERSSAMPLE':
-                    deltaInOctets = int(s['ifInOctets']) - prevInOctets
-                    deltaOutOctets = int(s['ifOutOctets']) - prevOutOctets
-                    values = [s['sampleSequenceNo'],
-                              s['ifInOctets'],
-                              s['ifInUcastPkts'],
-                              str(deltaInOctets),
-                              "overloadIn" if deltaInOctets > overloadByteRate else "normalIn",
-                              s['ifOutOctets'],
-                              s['ifOutUcastPkts'],
-                              str(deltaOutOctets),
-                              "overloadOut" if deltaOutOctets > overloadByteRate else "normalOut"]
-                    f.write(', '.join(values) + os.linesep)
-                    prevInOctets = int(s['ifInOctets'])
-                    prevOutOctets = int(s['ifOutOctets'])
+                deltaInOctets = int(s['ifInOctets']) - prevInOctets
+                deltaOutOctets = int(s['ifOutOctets']) - prevOutOctets
+                values = [s['sampleSequenceNo'],
+                          s['ifInOctets'],
+                          s['ifInUcastPkts'],
+                          str(deltaInOctets),
+                          "overloadIn" if deltaInOctets > overloadByteRate else "normalIn",
+                          s['ifOutOctets'],
+                          s['ifOutUcastPkts'],
+                          str(deltaOutOctets),
+                          "overloadOut" if deltaOutOctets > overloadByteRate else "normalOut"]
+                f.write(', '.join(values) + os.linesep)
+                prevInOctets = int(s['ifInOctets'])
+                prevOutOctets = int(s['ifOutOctets'])
 
 
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# cleanup previous run
+rm /tmp/intfs-list /tmp/sflow*
 # create list of interfaces + indexes (ifIndex)
 ip a | sed '/^ / d' - | cut -d: -f1,2 > /tmp/intfs-list
 # turn on sflow
