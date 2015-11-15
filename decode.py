@@ -106,7 +106,7 @@ def create_sampling_csv_file(index_to_samples,sorted_if_names):
                     if eth in loadersIfNames and k == 'ifInOctets':
                         logging.info("delta for " + eth + " :" + delta)
                         loaders_tot_delta += int(delta)
-                    elif eth == destIfName and k == 'ifInOctets':
+                    elif eth == destIfName and k == 'ifOutOctets':
                         dest_delta = int(delta)
                     values.append(delta)
             tag = '1' if loaders_tot_delta >= overloadByteRate else '0'
