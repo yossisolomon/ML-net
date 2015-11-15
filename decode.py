@@ -4,6 +4,9 @@ import os
 from datetime import datetime
 import logging
 
+pj = os.path.join
+
+baseFolder = pj('/tmp')
 startDatagram ='startDatagram =================================\n'
 endDatagram ='endDatagram   =================================\n'
 startSample = 'startSample ----------------------\n'
@@ -20,7 +23,7 @@ overloadByteRate = 10*megaByte*0.7
 
 def get_interfaces_to_names_map():
     interfaces = {}
-    with open('/tmp/intfs-list') as inputFile:
+    with open(pj(baseFolder,'intfs-list')) as inputFile:
         line = inputFile.readline()
         while not line == '':
             k,v = get_key_value_from_line(line,': ')
@@ -31,7 +34,7 @@ def get_interfaces_to_names_map():
 
 def get_datagrams():
     datagrams = []
-    with open('/tmp/sflow-datagrams') as inputFile:
+    with open(pj(baseFolder,'sflow-datagrams')) as inputFile:
         line = inputFile.readline()
         while not line == '':
             if line == startDatagram:
@@ -91,8 +94,8 @@ def is_deltas_sampling_ok(loaders_tot_delta,dest_delta):
 
 
 def create_sampling_csv_file(index_to_samples,sorted_if_names):
-    with open('/tmp/sflowCSV-%s'%datetime.now().isoformat(),'w') as f:
-        for i in index_to_samples.keys():
+    with open(pj(baseFolder,'sflowCSV-%s'%datetime.now().isoformat()),'w') as f:
+        for i in sorted(index_to_samples.keys()):
             values = []
             loaders_tot_delta = 0
             dest_delta = 0
