@@ -13,9 +13,10 @@ startSample = 'startSample ----------------------\n'
 endSample = 'endSample   ----------------------\n'
 disregardCounter = ['sampleType_tag','sourceId', 'counterBlock_tag', 'networkType', 'ifSpeed', 'ifDirection', 'ifStatus', 'ifInBroadcastPkts','ifInUnknownProtos','ifOutMulticastPkts','ifOutBroadcastPkts','ifPromiscuousMode']
 relevantKeys = ['ifInOctets','ifInUcastPkts','ifOutOctets','ifOutUcastPkts']
+timeKey = 'time'
 loadersIfNames = ['s0-eth1','s1-eth1','s2-eth1']
 destIfName = 's3-eth1'
-deltasErrorMargin = 0.05
+deltasErrorMargin = 0.15
 mega = pow(2,20)
 megaByte = mega/8
 overloadByteRate = 10*megaByte*0.7
@@ -73,8 +74,8 @@ def get_key_value_from_line(line, delim=' '):
     return split[0] , split[1]
 
 
-def get_relevant_sampling(sample):
-    new_sample = {}
+def get_relevant_sampling(sample, timestamp):
+    new_sample = {timeKey:timestamp}
     for k in relevantKeys:
         new_sample[k] = sample[k]
     return new_sample
@@ -95,11 +96,13 @@ def is_deltas_sampling_ok(loaders_tot_delta,dest_delta):
 
 def create_sampling_csv_file(index_to_samples,sorted_if_names):
     with open(pj(baseFolder,'sflowCSV-%s'%datetime.now().isoformat()),'w') as f:
-        for i in sorted(index_to_samples.keys()):
+        for i in sorted(index_to_samples.keys(),key=int):
             values = []
             loaders_tot_delta = 0
             dest_delta = 0
             for eth in sorted_if_names:
+                values.append(eth)
+                values.append(index_to_samples[i][eth][timeKey])
                 for k in relevantKeys:
                     values.append(index_to_samples[i][eth][k])
                     curr = index_to_samples[i][eth][k]
@@ -114,7 +117,7 @@ def create_sampling_csv_file(index_to_samples,sorted_if_names):
                     values.append(delta)
             tag = '1' if loaders_tot_delta >= overloadByteRate else '0'
             if not is_deltas_sampling_ok(loaders_tot_delta,dest_delta):
-                logging.warn('Deltas margin of error (%s) passed for sample#%s: loadTot=%s   dest=%s'%(deltasErrorMargin,i,loaders_tot_delta,dest_delta))
+                logging.warn('Deltas margin of error (%s) passed for sample#%s: loadTot=%s   dest=%s   abs-diff=%s'%(deltasErrorMargin,i,loaders_tot_delta,dest_delta,abs(loaders_tot_delta-dest_delta)))
             logging.info('tag='+tag)
             f.write(', '.join([tag] + values) + os.linesep)
 
@@ -128,9 +131,9 @@ def get_index_to_samples_map(datagrams, interfaces_to_names):
                 name = interfaces_to_names[s['ifIndex']]
                 index = s['sampleSequenceNo']
                 if not index_to_samples.has_key(index):
-                    index_to_samples[index] = {name:get_relevant_sampling(s)}
+                    index_to_samples[index] = {name:get_relevant_sampling(s,d['unixSecondsUTC'])}
                 else:
-                    index_to_samples[index][name] = get_relevant_sampling(s)
+                    index_to_samples[index][name] = get_relevant_sampling(s,d['unixSecondsUTC'])
     return index_to_samples
 
 
