@@ -3,12 +3,12 @@ import random
 import os
 baseCommand = "-m rttm -a 10.0.0.4"
 
-expDurationMinutes = 25
+expDurationMinutes = 200
 expDurationSeconds = expDurationMinutes*60
 expDurationMilliSeconds = 1000*expDurationSeconds
 
-periodLengthMilliSeconds = 30*1000
-periodSendLength = 10 * 1000
+periodLengthMilliSeconds = 240*1000
+periodSendLength = 220 * 1000
 
 #Not designed for more than two yet!
 loaderHosts = 2
@@ -29,8 +29,8 @@ def create_loader_hosts_commands(numHosts, periodDuration, totalDuration):
     commands = [[] for _ in xrange(numHosts)]
     for i in xrange(periods):
         for h in xrange(numHosts):
-            delay = i * periodLengthMilliSeconds + random.randrange(1000,10000)
-            pps = random.randrange(128,576)
+            delay = i * periodLengthMilliSeconds + random.randrange(0,20000)
+            pps = random.randrange(384,512)
             commands[h].append(create_command(baseCommand,periodSendLength,delay,pps,defaultPacketSize))
     return commands
 

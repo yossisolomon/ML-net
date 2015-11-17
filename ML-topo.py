@@ -118,7 +118,7 @@ def connectToRootNS( network, ip='10.123.123.1', prefixLen=8, routes=['10.0.0.0/
 def setupITG( network ):
     for host in network.hosts:
         host.cmd( '/usr/sbin/sshd -D &')
-        host.cmd( 'ITGRecv -l /tmp/ITGRecv-Logs/ITGRecv-' + host.IP() + '.log > /dev/null &' )
+        host.cmd( 'ITGRecv < /dev/null &' )
 
     # DEBUGGING INFO
     print
