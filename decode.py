@@ -19,7 +19,7 @@ destIfName = 's3-eth1'
 deltasErrorMargin = 0.15
 mega = pow(2,20)
 megaByte = mega/8
-overloadByteRate = 10*megaByte*0.7
+overloadByteRate = 10*megaByte*0.76
 
 
 def get_interfaces_to_names_map():
