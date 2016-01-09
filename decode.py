@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
 import os
-from datetime import datetime
+import time
 import logging
 
 pj = os.path.join
 
-baseFolder = pj('/tmp')
+baseFolder = pj(os.sep,'tmp')
 startDatagram ='startDatagram =================================\n'
 endDatagram ='endDatagram   =================================\n'
 startSample = 'startSample ----------------------\n'
@@ -95,7 +95,8 @@ def is_deltas_sampling_ok(loaders_tot_delta,dest_delta):
 
 
 def create_sampling_csv_file(index_to_samples,sorted_if_names):
-    with open(pj(baseFolder,'sflowCSV-%s'%datetime.now().isoformat()),'w') as f:
+    out_file = pj(baseFolder,'sflowCSV-%s'%time.strftime("%Y%m%d-%H%M%S"))
+    with open(out_file,'w') as f:
         for i in sorted(index_to_samples.keys(),key=int):
             values = []
             loaders_tot_delta = 0
@@ -120,6 +121,7 @@ def create_sampling_csv_file(index_to_samples,sorted_if_names):
                 logging.warn('Deltas margin of error (%s) passed for sample#%s: loadTot=%s   dest=%s   abs-diff=%s'%(deltasErrorMargin,i,loaders_tot_delta,dest_delta,abs(loaders_tot_delta-dest_delta)))
             logging.info('tag='+tag)
             f.write(', '.join([tag] + values) + os.linesep)
+    return out_file
 
 
 def get_index_to_samples_map(datagrams, interfaces_to_names):
@@ -146,8 +148,8 @@ def main():
     if not is_sampling_size_ok(index_to_samples):
         raise Exception("bad sampling")
     sorted_if_names = sorted(relevant_interfaces.values())
-    create_sampling_csv_file(index_to_samples,sorted_if_names)
-
+    out_file = create_sampling_csv_file(index_to_samples,sorted_if_names)
+    logging.info("The output file is: %s"%out_file)
 
 if __name__ == '__main__':
     main()
