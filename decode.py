@@ -102,26 +102,36 @@ def create_sampling_csv_file(index_to_samples,sorted_if_names):
             loaders_tot_delta = 0
             dest_delta = 0
             for eth in sorted_if_names:
-                values.append(eth)
-                values.append(index_to_samples[i][eth][timeKey])
-                for k in relevantKeys:
-                    values.append(index_to_samples[i][eth][k])
-                    curr = index_to_samples[i][eth][k]
-                    # insert delta for counter
-                    # (take delta from 0 if this is the first sample)
-                    delta = curr if i=='1' else str(int(curr)-int(index_to_samples[str(int(i)-1)][eth][k]))
-                    if eth in loadersIfNames and k == 'ifInOctets':
-                        logging.info("delta for " + eth + " :" + delta)
-                        loaders_tot_delta += int(delta)
-                    elif eth == destIfName and k == 'ifOutOctets':
-                        dest_delta = int(delta)
-                    values.append(delta)
+                # don't output the destination port
+                if eth == destIfName:
+                    dest_delta = int(get_delta(destIfName,i,index_to_samples,'ifOutOctets'))
+                    continue
+                else:
+                    values.append(eth)
+                    values.append(index_to_samples[i][eth][timeKey])
+                    for k in relevantKeys:
+                        values.append(index_to_samples[i][eth][k])
+                        delta = get_delta(eth, i, index_to_samples, k)
+                        if eth in loadersIfNames and k == 'ifInOctets':
+                            logging.info("delta for " + eth + " :" + delta)
+                            loaders_tot_delta += int(delta)
+                        values.append(delta)
+            # removing interruption by irrelevant loaders
+            loaders_tot_delta = abs(loaders_tot_delta-130000)
             tag = '1' if loaders_tot_delta >= overloadByteRate else '0'
             if not is_deltas_sampling_ok(loaders_tot_delta,dest_delta):
                 logging.warn('Deltas margin of error (%s) passed for sample#%s: loadTot=%s   dest=%s   abs-diff=%s'%(deltasErrorMargin,i,loaders_tot_delta,dest_delta,abs(loaders_tot_delta-dest_delta)))
             logging.info('tag='+tag)
             f.write(', '.join([tag] + values) + os.linesep)
     return out_file
+
+
+def get_delta(eth, i, index_to_samples, k):
+    curr = index_to_samples[i][eth][k]
+    # insert delta for counter
+    # (take delta from 0 if this is the first sample)
+    delta = curr if i == '1' else str(int(curr) - int(index_to_samples[str(int(i) - 1)][eth][k]))
+    return delta
 
 
 def get_index_to_samples_map(datagrams, interfaces_to_names):
@@ -140,6 +150,7 @@ def get_index_to_samples_map(datagrams, interfaces_to_names):
 
 
 def main():
+    #logging.getLogger().setLevel(logging.INFO)
     logging.info("overload th: " + str(overloadByteRate))
     interfaces_to_names = get_interfaces_to_names_map()
     relevant_interfaces = dict(filter(lambda (i,n): "-eth" in n and not "root" in n,interfaces_to_names.items()))
