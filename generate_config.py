@@ -2,21 +2,38 @@
 import random
 import os
 from netaddr import iter_iprange
+
+
 baseCommand = "-m rttm -a"
+
+# IPs
 loadedHost = "10.0.0.4"
 firstHost = "10.0.0.1"
+steadyLoader = "10.0.0.3"
 lastHost = '10.0.0.9'
+
 expDurationMinutes = 200
 expDurationSeconds = expDurationMinutes*60
 expDurationMilliSeconds = 1000*expDurationSeconds
 
 periodLengthMilliSeconds = 240*1000
 periodSendLength = 220 * 1000
+periods = expDurationMilliSeconds/periodLengthMilliSeconds
 
-#Not designed for more than two yet!
-loaderHosts = 2
+delayRandomness = {}
+delayRandomness["min"] = 0
+delayRandomness["max"] = 20000
+
+# Packets per Second
+steadyPPS = 128
+dynamicPPS = {}
+dynamicPPS["min"] = 384
+dynamicPPS["max"] = 512
 
 defaultPacketSize = 1024
+
+# Not designed for more than two yet!
+dynamicLoaderHostsNum = 2
 
 
 def create_command(base, dest, duration, delay, pps, size):
@@ -29,37 +46,47 @@ def create_command(base, dest, duration, delay, pps, size):
     return cmd
 
 
-def create_loader_hosts_commands(numHosts, periodDuration, totalDuration):
-    periods = totalDuration/periodDuration
-    commands = [[] for _ in xrange(numHosts)]
+def create_dynamic_loader_commands(loaded_host):
+    commands = []
     for i in xrange(periods):
-        for h in xrange(numHosts):
-            delay = i * periodLengthMilliSeconds + random.randrange(0,20000)
-            pps = random.randrange(384,512)
-            commands[h].append(create_command(baseCommand,loadedHost,periodSendLength,delay,pps,defaultPacketSize))
+        delay = i * periodLengthMilliSeconds + random.randrange(delayRandomness["min"],delayRandomness["max"])
+        pps = random.randrange(dynamicPPS["min"],dynamicPPS["max"])
+        cmd = create_command(baseCommand, loaded_host, periodSendLength, delay ,pps, defaultPacketSize)
+        commands.append(cmd)
     return commands
 
 
+def create_dynamic_loaders_commands(loaded_host, num_hosts):
+    commands = [[] for _ in xrange(num_hosts)]
+    for h in xrange(num_hosts):
+        commands[h].extend(create_dynamic_loader_commands(loaded_host))
+    return commands
 
-steadyStateHostCommand = create_command(baseCommand,loadedHost, expDurationMilliSeconds, 0, 128, defaultPacketSize)
-loaderHostsCommands = create_loader_hosts_commands(loaderHosts,periodLengthMilliSeconds,expDurationMilliSeconds)
+
+def write_cmds_to_file(cmds, filename):
+    with open(filename,"w") as f:
+        map(lambda c: f.write(c+os.linesep),cmds)
+
+
 print "steady loader:"
+steadyStateHostCommand = create_command(baseCommand, loadedHost, expDurationMilliSeconds, 0, steadyPPS, defaultPacketSize)
 print steadyStateHostCommand
-with open("./config-10.0.0.3","w") as f:
-    f.write(steadyStateHostCommand+os.linesep)
+write_cmds_to_file([steadyStateHostCommand], "./config-"+steadyLoader)
+
 print "dynamic loaders:"
+loaderHostsCommands = create_dynamic_loaders_commands(loadedHost, dynamicLoaderHostsNum)
 print loaderHostsCommands
-for h in xrange(loaderHosts):
-    with open("./config-10.0.0.%s"%(h+1),"w") as f:
-        map(lambda c: f.write(c+os.linesep),loaderHostsCommands[h])
+for h in xrange(dynamicLoaderHostsNum):
+    write_cmds_to_file(loaderHostsCommands[h],"./config-10.0.0.%s"%(h+1))
+
 
 print "background loaders:"
 backgroundLoaders = iter_iprange(loadedHost, lastHost, step=1)
 for l in backgroundLoaders:
-    with open("./config-%s"%(l),"w") as f:
-        if str(l) == lastHost:
-            cmd = create_command(baseCommand, firstHost, expDurationMilliSeconds, 0, 128, defaultPacketSize)
-        else:
-            cmd = create_command(baseCommand,l+1, expDurationMilliSeconds, 0, 128, defaultPacketSize)
-        print cmd
-        f.write(cmd+os.linesep)
+    if str(l) == lastHost:
+        cmds = create_dynamic_loader_commands(firstHost)
+    else:
+        cmds = create_dynamic_loader_commands(l+1)
+    print str(l) + ":"
+    print cmds
+    write_cmds_to_file(cmds, "./config-%s"%(l))
