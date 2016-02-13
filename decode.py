@@ -102,9 +102,9 @@ def create_sampling_csv_file(index_to_samples,sorted_if_names):
             loaders_tot_delta = 0
             dest_delta = 0
             for eth in sorted_if_names:
-                # don't output the destination port
                 if eth == destIfName:
                     dest_delta = int(get_delta(destIfName,i,index_to_samples,'ifOutOctets'))
+                    # don't output the destination port
                     continue
                 else:
                     values.append(eth)
@@ -116,9 +116,7 @@ def create_sampling_csv_file(index_to_samples,sorted_if_names):
                             logging.info("delta for " + eth + " :" + delta)
                             loaders_tot_delta += int(delta)
                         values.append(delta)
-            # removing interruption by irrelevant loaders
-            loaders_tot_delta = abs(loaders_tot_delta-130000)
-            tag = '1' if loaders_tot_delta >= overloadByteRate else '0'
+            tag = '1' if dest_delta >= overloadByteRate else '0'
             if not is_deltas_sampling_ok(loaders_tot_delta,dest_delta):
                 logging.warn('Deltas margin of error (%s) passed for sample#%s: loadTot=%s   dest=%s   abs-diff=%s'%(deltasErrorMargin,i,loaders_tot_delta,dest_delta,abs(loaders_tot_delta-dest_delta)))
             logging.info('tag='+tag)
