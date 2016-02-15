@@ -14,7 +14,6 @@ endSample = 'endSample   ----------------------\n'
 disregardCounter = ['sampleType_tag','sourceId', 'counterBlock_tag', 'networkType', 'ifSpeed', 'ifDirection', 'ifStatus', 'ifInBroadcastPkts','ifInUnknownProtos','ifOutMulticastPkts','ifOutBroadcastPkts','ifPromiscuousMode']
 relevantKeys = ['ifInOctets','ifInUcastPkts','ifOutOctets','ifOutUcastPkts']
 timeKey = 'time'
-loadersIfNames = ['s0-eth1','s1-eth1','s2-eth1']
 destIfName = 's3-eth1'
 deltasErrorMargin = 0.15
 mega = pow(2,20)
@@ -88,18 +87,11 @@ def is_sampling_size_ok(index_to_samples):
     return True
 
 
-def is_deltas_sampling_ok(loaders_tot_delta,dest_delta):
-    if abs(loaders_tot_delta-dest_delta) > deltasErrorMargin*dest_delta:
-        return False
-    return True
-
-
 def create_sampling_csv_file(index_to_samples,sorted_if_names):
     out_file = pj(baseFolder,'sflowCSV-%s'%time.strftime("%Y%m%d-%H%M%S"))
     with open(out_file,'w') as f:
         for i in sorted(index_to_samples.keys(),key=int):
             values = []
-            loaders_tot_delta = 0
             dest_delta = 0
             for eth in sorted_if_names:
                 if eth == destIfName:
@@ -112,13 +104,8 @@ def create_sampling_csv_file(index_to_samples,sorted_if_names):
                     for k in relevantKeys:
                         values.append(index_to_samples[i][eth][k])
                         delta = get_delta(eth, i, index_to_samples, k)
-                        if eth in loadersIfNames and k == 'ifInOctets':
-                            logging.info("delta for " + eth + " :" + delta)
-                            loaders_tot_delta += int(delta)
                         values.append(delta)
             tag = '1' if dest_delta >= overloadByteRate else '0'
-            if not is_deltas_sampling_ok(loaders_tot_delta,dest_delta):
-                logging.warn('Deltas margin of error (%s) passed for sample#%s: loadTot=%s   dest=%s   abs-diff=%s'%(deltasErrorMargin,i,loaders_tot_delta,dest_delta,abs(loaders_tot_delta-dest_delta)))
             logging.info('tag='+tag)
             f.write(', '.join([tag] + values) + os.linesep)
     return out_file
