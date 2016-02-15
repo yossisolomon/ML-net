@@ -80,13 +80,6 @@ def get_relevant_sampling(sample, timestamp):
     return new_sample
 
 
-def is_sampling_size_ok(index_to_samples):
-    sampling_counters = [len(s) for s in index_to_samples.values()]
-    if len(set(sampling_counters)) > 1:
-        return False
-    return True
-
-
 def create_sampling_csv_file(index_to_samples,sorted_if_names):
     out_file = pj(baseFolder,'sflowCSV-%s'%time.strftime("%Y%m%d-%H%M%S"))
     with open(out_file,'w') as f:
@@ -114,9 +107,26 @@ def create_sampling_csv_file(index_to_samples,sorted_if_names):
 def get_delta(eth, i, index_to_samples, k):
     curr = index_to_samples[i][eth][k]
     # insert delta for counter
-    # (take delta from 0 if this is the first sample)
-    delta = curr if i == '1' else str(int(curr) - int(index_to_samples[str(int(i) - 1)][eth][k]))
+    # (take delta from 0 if this is the first sample, or if the previous sample was lost somehow)
+    if i == '1':
+        delta = curr
+    elif index_to_samples.has_key(str(int(i)-1)) == False:
+        delta = curr
+        logging.warn("Taking delta from 0 because the previous sample was not found for index %s"%i)
+    else:
+        delta = str(int(curr) - int(index_to_samples[str(int(i) - 1)][eth][k]))
     return delta
+
+
+def filter_under_reported_indexes(index_to_samples, number_of_intfs):
+    filtered_index_to_samples = {}
+    for i in index_to_samples:
+        if len(index_to_samples[i]) != number_of_intfs:
+            logging.warn("Filtering samples of index %s, because it had %d samples (instead of # of ports = %d)"%(i,len(index_to_samples[i]),number_of_intfs))
+            logging.info(index_to_samples[i])
+        else:
+            filtered_index_to_samples[i] = index_to_samples[i]
+    return filtered_index_to_samples
 
 
 def get_index_to_samples_map(datagrams, interfaces_to_names):
@@ -141,10 +151,9 @@ def main():
     relevant_interfaces = dict(filter(lambda (i,n): "-eth" in n and not "root" in n,interfaces_to_names.items()))
     datagrams = get_datagrams()
     index_to_samples = get_index_to_samples_map(datagrams, relevant_interfaces)
-    if not is_sampling_size_ok(index_to_samples):
-        raise Exception("bad sampling")
+    filtered_index_to_samples = filter_under_reported_indexes(index_to_samples, len(relevant_interfaces))
     sorted_if_names = sorted(relevant_interfaces.values())
-    out_file = create_sampling_csv_file(index_to_samples,sorted_if_names)
+    out_file = create_sampling_csv_file(filtered_index_to_samples,sorted_if_names)
     logging.info("The output file is: %s"%out_file)
 
 if __name__ == '__main__':
