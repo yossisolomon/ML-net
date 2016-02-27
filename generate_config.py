@@ -1,16 +1,15 @@
 #!/usr/bin/python
+import argparse
+import logging
 import random
 import os
 from netaddr import iter_iprange
 
-
 baseCommand = "-m rttm -a"
 
 # IPs
-loadedHost = "10.0.0.4"
 firstHost = "10.0.0.1"
-steadyLoader = "10.0.0.3"
-lastHost = '10.0.0.9'
+lastHostTemplate = "10.0.0."
 
 expDurationMinutes = 200
 expDurationSeconds = expDurationMinutes*60
@@ -25,15 +24,11 @@ delayRandomness["min"] = 0
 delayRandomness["max"] = 20000
 
 # Packets per Second
-steadyPPS = 128
 dynamicPPS = {}
-dynamicPPS["min"] = 384
-dynamicPPS["max"] = 512
+dynamicPPS["min"] = 615 # ~60% of 10 Mbit
+dynamicPPS["max"] = 920 # ~90% of 10Mbit
 
 defaultPacketSize = 1024
-
-# Not designed for more than two yet!
-dynamicLoaderHostsNum = 2
 
 
 def create_command(base, dest, duration, delay, pps, size):
@@ -41,16 +36,17 @@ def create_command(base, dest, duration, delay, pps, size):
     cmd += " %s"%dest
     cmd += " -t %s"%duration
     cmd += " -d %s"%delay
-    cmd += " -C %s"%pps
+    cmd += " -O %s"%pps
     cmd += " -c %s"%size
     return cmd
 
 
-def create_dynamic_loader_commands(loaded_host):
+def create_dynamic_loader_commands(hosts):
     commands = []
     for i in xrange(periods):
         delay = i * periodLengthMilliSeconds + random.randrange(delayRandomness["min"],delayRandomness["max"])
         pps = random.randrange(dynamicPPS["min"],dynamicPPS["max"])
+        loaded_host = hosts[random.randrange(len(hosts))]
         cmd = create_command(baseCommand, loaded_host, periodSendLength, delay ,pps, defaultPacketSize)
         commands.append(cmd)
     return commands
@@ -68,25 +64,47 @@ def write_cmds_to_file(cmds, filename):
         map(lambda c: f.write(c+os.linesep),cmds)
 
 
-print "steady loader:"
-steadyStateHostCommand = create_command(baseCommand, loadedHost, expDurationMilliSeconds, 0, steadyPPS, defaultPacketSize)
-print steadyStateHostCommand
-write_cmds_to_file([steadyStateHostCommand], "./config-"+steadyLoader)
-
-print "dynamic loaders:"
-loaderHostsCommands = create_dynamic_loaders_commands(loadedHost, dynamicLoaderHostsNum)
-print loaderHostsCommands
-for h in xrange(dynamicLoaderHostsNum):
-    write_cmds_to_file(loaderHostsCommands[h],"./config-10.0.0.%s"%(h+1))
-
-
-print "background loaders:"
-backgroundLoaders = iter_iprange(loadedHost, lastHost, step=1)
-for l in backgroundLoaders:
-    if str(l) == lastHost:
-        cmds = create_dynamic_loader_commands(firstHost)
+def validate_args(args):
+    if os.path.isdir(args.config_dir):
+        logging.info("Creating config files in: " + args.config_dir)
     else:
-        cmds = create_dynamic_loader_commands(l+1)
-    print str(l) + ":"
-    print cmds
-    write_cmds_to_file(cmds, "./config-%s"%(l))
+        logging.fatal("Argument specified \"" + args.config_dir + "\" is not a directory!")
+        exit(1)
+    if not 1 <= args.num_hosts <= 253:
+        logging.fatal("The number of hosts specified \"" + args.num_hosts + \
+              "\" cannot be within one subnet!\nShould be {1..253}!")
+        exit(1)
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--config-dir",required=True,
+                        help="The configuration file directory (where the config files will be written to)")
+    parser.add_argument("-n", "--num-hosts", type=int, required=True,
+                        help="The number of hosts to generate configuration files for")
+    parser.add_argument("--debug", action="store_true", help="Set verbosity to high (debug level)")
+    return parser.parse_args()
+
+if __name__ == '__main__':
+    args = parse_args()
+
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+
+    validate_args(args)
+
+
+    last_host = lastHostTemplate + str(args.num_hosts)
+    ip_addresses = list(iter_iprange(firstHost, last_host, step=1))
+
+    logging.info("Creating configuration for IPs:")
+    logging.info(ip_addresses)
+
+    for l in ip_addresses:
+        cmds = create_dynamic_loader_commands(ip_addresses)
+        logging.info("Creating commands for " + str(l))
+        logging.debug(cmds)
+        write_cmds_to_file(cmds, args.config_dir+"/config-%s"%(l))
+
+    logging.info("Done generating host config files!")
