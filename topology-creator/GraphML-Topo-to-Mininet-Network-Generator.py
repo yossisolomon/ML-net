@@ -28,6 +28,7 @@ from mininet.log import setLogLevel
 from mininet.util import dumpNodeConnections
 from subprocess import check_call, CalledProcessError
 from os.path import expanduser
+import time
 
 class GeneratedTopo( Topo ):
     "Internet Topology Zoo Specimen."
@@ -108,8 +109,8 @@ def setupITG( network ):
 
     countdown(3)
     try:
-        check_call(expanduser("~/ML-net/run-sim.sh"))
-    except subprocess.CalledProcessError as e:
+        check_call(expanduser("~/ML-net/run_sim.sh"))
+    except CalledProcessError as e:
         print "Simulation ended with non zero returncode: " + e.returncode
 
     print "Killing ITGRecv(s)..."

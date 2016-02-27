@@ -9,12 +9,12 @@ else
 fi
 
 # create experiment folder
-export EXP_DIR="~/ML-net/results/exp-`date  +%H%M%S-%d%m%Y`"
+EXP_DIR=~/ML-net/results/exp-`date  +%H%M%S-%d%m%Y`
 mkdir -p $EXP_DIR
 echo The experiment files can be found in $EXP_DIR
 
 # run experiment
-sudo $1
+sudo EXP_DIR=$EXP_DIR $1
 # cleanup mininet
 sudo mn -c
 
