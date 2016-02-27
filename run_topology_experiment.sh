@@ -13,6 +13,4 @@ EXP_PY=/tmp/ML-topo.py
 ./topology-creator/GraphML-Topo-to-Mininet-Network-Generator.py -i $1 -o $EXP_PY
 
 # run experiment
-sudo $EXP_PY
-# cleanup mininet
-sudo mn -c
+./run_experiment.sh $EXP_PY
