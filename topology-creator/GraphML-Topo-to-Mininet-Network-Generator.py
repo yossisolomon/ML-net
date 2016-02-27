@@ -5,34 +5,6 @@
 
 # This file parses Network Topologies in GraphML format from the Internet Topology Zoo.
 # A python file for creating Mininet Topologies will be created as Output.
-# Files have to be in the same directory.
-#
-# Arguments:
-#   -f              [filename of GraphML input file]
-#   --file          [filename of GraphML input file]
-#   -o              [filename of GraphML output file]
-#   --output        [filename of GraphML output file]
-#   -b              [number as integer for bandwidth in mbit]
-#   --bw            [number as integer for bandwidth in mbit]
-#   --bandwidth     [number as integer for bandwidth in mbit]
-#   -c              [controller ip as string]
-#   --controller    [controller ip as string]
-#
-# Without any input, program will terminate.
-# Without specified output, outputfile will have the same name as the input file.
-# This means, the argument for the outputfile can be omitted.
-# Parameters for bandwith and controller ip have default values, if they are omitted, too.
-#
-#
-# sjas
-# Wed Jul 17 02:59:06 PDT 2013
-#
-#
-# TODO's:
-#   -   fix double name error of some topologies
-#   -   fix topoparsing (choose by name, not element <d..>)
-#           =    topos with duplicate labels
-#   -   use 'argparse' for script parameters, eases help creation
 #
 #################################################################################
 import os
@@ -110,7 +82,7 @@ def countdown(t):
     while t:
         mins, secs = divmod(t, 60)
         timeformat = '{{:02d}}:{{:02d}}'.format(mins, secs)
-        print(timeformat, end='\r')
+        print(timeformat)
         time.sleep(1)
         t -= 1
     print('Done!')
