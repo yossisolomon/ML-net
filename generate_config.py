@@ -5,7 +5,7 @@ import random
 import os
 from netaddr import iter_iprange
 
-baseCommand = "-m rttm -a"
+baseCommand = "ITGSend -m rttm -a"
 
 # IPs
 firstHost = "10.0.0.1"
@@ -61,7 +61,12 @@ def create_dynamic_loaders_commands(loaded_host, num_hosts):
 
 def write_cmds_to_file(cmds, filename):
     with open(filename,"w") as f:
+        f.write("#!/bin/bash")
         map(lambda c: f.write(c+os.linesep),cmds)
+    # give it executable permissions
+    st = os.stat(filename)
+    os.chmod(filename, st.st_mode | 0111)
+
 
 
 def validate_args(args):
