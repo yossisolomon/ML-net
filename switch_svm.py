@@ -346,7 +346,7 @@ def main():
         logging.getLogger().setLevel(logging.INFO)
 
     if not os.path.exists(args.input):
-        logging.error("The input file \"%s\" was not found!"%args.input_file)
+        logging.error("The input file \"%s\" was not found!"%args.input)
         return
 
     samples = load_samples(args.input, args.features_per_switch)
