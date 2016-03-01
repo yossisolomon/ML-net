@@ -1,12 +1,10 @@
 #!/usr/bin/python
-
+import argparse
 import os
 import time
 import logging
+from os.path import join as pj
 
-pj = os.path.join
-
-baseFolder = pj(os.sep,'tmp')
 startDatagram ='startDatagram =================================\n'
 endDatagram ='endDatagram   =================================\n'
 startSample = 'startSample ----------------------\n'
@@ -14,14 +12,11 @@ endSample = 'endSample   ----------------------\n'
 disregardCounter = ['sampleType_tag','sourceId', 'counterBlock_tag', 'networkType', 'ifSpeed', 'ifDirection', 'ifStatus', 'ifInBroadcastPkts','ifInUnknownProtos','ifOutMulticastPkts','ifOutBroadcastPkts','ifPromiscuousMode']
 relevantKeys = ['ifInOctets','ifInUcastPkts','ifOutOctets','ifOutUcastPkts']
 timeKey = 'time'
-destIfName = 's3-eth1'
-deltasErrorMargin = 0.15
 mega = pow(2,20)
 megaByte = mega/8
-overloadByteRate = 10*megaByte*0.76
 
 
-def get_interfaces_to_names_map():
+def get_interfaces_to_names_map(baseFolder):
     interfaces = {}
     with open(pj(baseFolder,'intfs-list')) as inputFile:
         line = inputFile.readline()
@@ -32,7 +27,7 @@ def get_interfaces_to_names_map():
     return interfaces
 
 
-def get_datagrams():
+def get_datagrams(baseFolder):
     datagrams = []
     with open(pj(baseFolder,'sflow-datagrams')) as inputFile:
         line = inputFile.readline()
@@ -80,28 +75,27 @@ def get_relevant_sampling(sample, timestamp):
     return new_sample
 
 
-def create_sampling_csv_file(index_to_samples,sorted_if_names):
-    out_file = pj(baseFolder,'sflowCSV-%s'%time.strftime("%Y%m%d-%H%M%S"))
-    with open(out_file,'w') as f:
-        for i in sorted(index_to_samples.keys(),key=int):
-            values = []
-            dest_delta = 0
-            for eth in sorted_if_names:
-                if eth == destIfName:
-                    dest_delta = int(get_delta(destIfName,i,index_to_samples,'ifOutOctets'))
-                    # don't output the destination port
-                    continue
-                else:
-                    values.append(eth)
-                    values.append(index_to_samples[i][eth][timeKey])
-                    for k in relevantKeys:
-                        values.append(index_to_samples[i][eth][k])
-                        delta = get_delta(eth, i, index_to_samples, k)
-                        values.append(delta)
-            tag = '1' if dest_delta >= overloadByteRate else '0'
-            logging.info('tag='+tag)
-            f.write(', '.join([tag] + values) + os.linesep)
-    return out_file
+def create_sampling_csv(index_to_samples,sorted_if_names,destIfName,overloadByteRate):
+    csv = ''
+    for i in sorted(index_to_samples.keys(),key=int):
+        values = []
+        dest_delta = 0
+        for eth in sorted_if_names:
+            if eth == destIfName:
+                dest_delta = int(get_delta(destIfName,i,index_to_samples,'ifOutOctets'))
+                # don't output the destination port
+                continue
+            else:
+                values.append(eth)
+                values.append(index_to_samples[i][eth][timeKey])
+                for k in relevantKeys:
+                    values.append(index_to_samples[i][eth][k])
+                    delta = get_delta(eth, i, index_to_samples, k)
+                    values.append(delta)
+        tag = '1' if dest_delta >= overloadByteRate else '0'
+        logging.debug('tag='+tag)
+        csv += ', '.join([tag] + values) + os.linesep
+    return csv
 
 
 def get_delta(eth, i, index_to_samples, k):
@@ -144,17 +138,52 @@ def get_index_to_samples_map(datagrams, interfaces_to_names):
     return index_to_samples
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input-dir", default="/tmp",
+                        help="The directory where the interfaces and datagram log files can be found")
+    parser.add_argument("-o", "--output-dir", default="/tmp",
+                        help="The directory into which switch csv files will be written")
+    parser.add_argument("-t","--threshold",default=0.76,type=float,help="Overload threshold percentage [0,1]")
+    parser.add_argument("-b","--bandwidth",default=10,type=int,help="Link bandwidth [MB/s]")
+    parser.add_argument("-d","--debug", action="store_true", help="Set verbosity to high (debug level)")
+    args = parser.parse_args()
+    args.overload_byte_rate = args.bandwidth * megaByte * args.threshold
+    return args
+
+
+def write_interface_csvs_to_files(filtered_index_to_samples, sorted_if_names, overload_byte_rate, output_folder):
+    for interf in sorted_if_names:
+        csv = create_sampling_csv(filtered_index_to_samples, sorted_if_names, interf, overload_byte_rate)
+        csv_filename = pj(output_folder, "sflow-" + interf + ".csv")
+        logging.info("Writing csv for " + interf + " to " + csv_filename)
+        logging.debug(csv)
+        with open(csv_filename,'w') as f:
+            f.write(csv)
+
+
 def main():
-    #logging.getLogger().setLevel(logging.INFO)
-    logging.info("overload th: " + str(overloadByteRate))
-    interfaces_to_names = get_interfaces_to_names_map()
+    args = parse_args()
+
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+
+    logging.info("Overload Threshold: " + \
+                 str(args.overload_byte_rate) + " B/s" + " which is " + str(args.threshold) + "% of link")
+
+    interfaces_to_names = get_interfaces_to_names_map(args.input_dir)
     relevant_interfaces = dict(filter(lambda (i,n): "-eth" in n and not "root" in n,interfaces_to_names.items()))
-    datagrams = get_datagrams()
+    datagrams = get_datagrams(args.input_dir)
     index_to_samples = get_index_to_samples_map(datagrams, relevant_interfaces)
     filtered_index_to_samples = filter_under_reported_indexes(index_to_samples, len(relevant_interfaces))
     sorted_if_names = sorted(relevant_interfaces.values())
-    out_file = create_sampling_csv_file(filtered_index_to_samples,sorted_if_names)
-    logging.info("The output file is: %s"%out_file)
+    write_interface_csvs_to_files(filtered_index_to_samples, sorted_if_names, args.overload_byte_rate, args.output_dir)
+
+
+
+
 
 if __name__ == '__main__':
     main()
