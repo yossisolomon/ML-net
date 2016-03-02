@@ -11,9 +11,8 @@ else
 fi
 
 # create experiment folder
-EXP_DIR=~/ML-net/results/exp-`date  +%H%M%S-%d%m%Y`
+EXP_DIR=~/ML-net/results/exp-`date  +%Y%m%d-%H%M%S`
 mkdir -p $EXP_DIR
-echo The experiment files can be found in $EXP_DIR
 
 # run experiment
 sudo EXP_DIR=$EXP_DIR $1
@@ -28,3 +27,5 @@ for csv in `ls $ANALYSIS_DIR/*.csv` ; do
     ~/ML-net/check_result.sh $csv ;
     python ~/ML-net/switch_svm.py -i $csv --write-each-class-results &> $csv.result ;
 done
+
+echo The experiment files can be found in $EXP_DIR
