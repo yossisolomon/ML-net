@@ -7,7 +7,8 @@ do
 
 	echo "-------------------------------"
 	echo "[$date] Starting ITGRecv"
-	ITGRecv -l /dev/null
+	ITGRecv -l /dev/null < /dev/null &
+        wait
 
 	echo "ITGRecv has crashed on: $date"
 

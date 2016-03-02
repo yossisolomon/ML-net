@@ -38,6 +38,7 @@ def create_command(base, dest, duration, delay, pps, size):
     cmd += " -d %s"%delay
     cmd += " -O %s"%pps
     cmd += " -c %s"%size
+    cmd += " < /dev/null &"
     return cmd
 
 
@@ -61,8 +62,9 @@ def create_dynamic_loaders_commands(loaded_host, num_hosts):
 
 def write_cmds_to_file(cmds, filename):
     with open(filename,"w") as f:
-        f.write("#!/bin/bash")
+        f.write("#!/bin/bash"+os.linesep)
         map(lambda c: f.write(c+os.linesep),cmds)
+        f.write("wait"+os.linesep)
     # give it executable permissions
     st = os.stat(filename)
     os.chmod(filename, st.st_mode | 0111)
