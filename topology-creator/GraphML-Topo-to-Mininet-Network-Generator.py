@@ -106,8 +106,9 @@ def setupITG( network ):
     print
 
     print "Waiting for the controller to finish setup..."
-
     countdown(3)
+    network.pingAllFull()
+
     try:
         check_call(expanduser("~/ML-net/run_sim.sh"))
     except CalledProcessError as e:
