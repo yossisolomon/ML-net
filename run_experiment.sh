@@ -18,7 +18,7 @@ EXP_DIR=~/ML-net/results/exp-`date  +%Y%m%d-%H%M%S`
 mkdir -p $EXP_DIR
 
 # run experiment
-sudo EXP_DIR=$EXP_DIR $@
+sudo EXP_DIR=$EXP_DIR $1
 # cleanup mininet
 sudo mn -c
 
