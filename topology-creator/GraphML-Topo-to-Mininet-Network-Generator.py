@@ -56,7 +56,7 @@ topos = {{ 'generated': ( lambda: GeneratedTopo() ) }}
 def setupNetwork(controller_ip):
     "Create network and run simple performance test"
     topo = GeneratedTopo()
-    net = Mininet(topo=topo, controller=lambda a: RemoteController( a, ip=controller_ip, port=6633 ), link=TCLink)
+    net = Mininet(topo=topo, controller=lambda a: RemoteController( a, ip=controller_ip, port=6653 ), link=TCLink)
     # adds root for ssh + starts net
     connectToRootNS(net)
     return net
@@ -134,7 +134,7 @@ def parse_arguments():
     parser.add_argument("-i", "--input",required=True, help="The input file")
     parser.add_argument("-o", "--output", default="", help="The output file")
     parser.add_argument("-b", "--bandwidth", default="10", help="Bandwidth")
-    parser.add_argument("-c", "--controller-ip", default="10.0.3.11", help="The Controller's IP address")
+    parser.add_argument("-c", "--controller-ip", required=True, help="The Controller's IP address")
     parser.add_argument("-d", "--debug", action="store_true", help="Set mininet verbosity to high (debug level)")
 
     args = parser.parse_args()
