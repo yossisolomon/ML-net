@@ -1,16 +1,19 @@
 #!/bin/bash
 
-if [[ -f $1 ]]
+GRAPHML=$1
+shift
+
+if [[ -f $GRAPHML ]]
 then
-    echo Running experiment with $1
+    echo Running experiment with $GRAPHML
 else
-    echo Experiment file \"$1\" is not a file or found
+    echo Experiment file \"$GRAPHML\" is not a file or found
     exit 1
 fi
 
-EXP_PY=/tmp/ML-topo.py
+EXP_PY=/tmp/`basename $GRAPHML`-topo.py
 # generate experiment
-./topology-creator/GraphML-Topo-to-Mininet-Network-Generator.py -i $1 -o $EXP_PY
+./topology-creator/GraphML-Topo-to-Mininet-Network-Generator.py -i $GRAPHML -o $EXP_PY
 
 # run experiment
-./run_experiment.sh $EXP_PY
+./run_experiment.sh $EXP_PY $@
