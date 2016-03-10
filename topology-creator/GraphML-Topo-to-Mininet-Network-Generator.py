@@ -110,7 +110,7 @@ def setupITG( network ):
     network.pingAllFull()
 
     try:
-        check_call(expanduser("~/ML-net/run-sim.sh"))
+        check_call(expanduser("~/ML-net/run_sim.sh"))
     except CalledProcessError as e:
         print "Simulation ended with non zero returncode: " + str(e.returncode)
 
