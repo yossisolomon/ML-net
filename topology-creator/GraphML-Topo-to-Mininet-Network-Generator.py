@@ -134,6 +134,7 @@ def parse_arguments():
     parser.add_argument("-i", "--input",required=True, help="The input file")
     parser.add_argument("-o", "--output", default="", help="The output file")
     parser.add_argument("-b", "--bandwidth", default="10", help="Bandwidth")
+    parser.add_argument("--switch-bandwidth", default="100", help="Switch Bandwidth")
     parser.add_argument("-c", "--controller-ip", required=True, help="The Controller's IP address")
     parser.add_argument("-d", "--debug", action="store_true", help="Set mininet verbosity to high (debug level)")
 
@@ -287,7 +288,7 @@ if __name__ == '__main__':
     edge_set, node_set, index_values_set = get_graph_sets_from_xml(args.input)
     id_node_name_dict, id_longitude_dict, id_latitude_dict = get_dicts_from_node_set(node_set, index_values_set)
     add_switches_with_linked_host_output = add_switches_with_linked_host(id_node_name_dict)
-    add_switch_links_output = add_switch_links(edge_set, id_node_name_dict, id_longitude_dict, id_latitude_dict, args.bandwidth)
+    add_switch_links_output = add_switch_links(edge_set, id_node_name_dict, id_longitude_dict, id_latitude_dict, args.switch_bandwidth)
     controller_ip_output = "controller_ip = '%s'"%args.controller_ip
     if args.debug:
         logging_output = "setLogLevel('debug')"
