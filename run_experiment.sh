@@ -23,7 +23,7 @@ sudo EXP_DIR=$EXP_DIR $1
 sudo mn -c
 
 # run analysis
-EXP_DIR=$EXP_DIR ./run_analysis
+EXP_DIR=$EXP_DIR ./run_analysis.sh
 
 
 echo The experiment files can be found in $EXP_DIR
