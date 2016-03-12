@@ -17,7 +17,7 @@ for csv in `ls $ANALYSIS_DIR/*.csv` ; do
     echo Running SVM analysis for $csv 
     CHECK=`~/ML-net/check_result.sh $csv`
     echo $CHECK
-    if [ -z $(echo $CHECK | grep -q "Overload=0") ]
+    if [[  $(echo $CHECK | grep -c "Overload=0") -gt 0 ]]
     then
       echo Skipping this file\'s ML analysis - no overloaded samples
     else
