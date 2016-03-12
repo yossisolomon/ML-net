@@ -316,7 +316,7 @@ def parse_arguments():
     # parser.add_argument("--write-class-results", action="store_true", help="Write class results to output")
     parser.add_argument("--write-each-class-results", action="store_true", help="Write each class results to output")
     # parser.add_argument("-q", "--dry-run", "--quiet", action="store_true", help="Dry run - no output")
-    parser.add_argument("--features-per-switch", type=int, default=10, help="Amount of features per switch")
+    parser.add_argument("--features-per-switch", type=int, default=6, help="Amount of features per switch")
     parser.add_argument("--pC", type=float, default=1.0, help="p_C")
     parser.add_argument("--pGamma", type=float, default=0.0, help="p_Gamma")
     parser.add_argument("--pKernel", default='linear', help="p_Kernel")

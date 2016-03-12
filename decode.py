@@ -9,8 +9,8 @@ startDatagram ='startDatagram =================================\n'
 endDatagram ='endDatagram   =================================\n'
 startSample = 'startSample ----------------------\n'
 endSample = 'endSample   ----------------------\n'
-disregardCounter = ['sampleType_tag','sourceId', 'counterBlock_tag', 'networkType', 'ifSpeed', 'ifDirection', 'ifStatus', 'ifInBroadcastPkts','ifInUnknownProtos','ifOutMulticastPkts','ifOutBroadcastPkts','ifPromiscuousMode']
-relevantKeys = ['ifInOctets','ifInUcastPkts','ifOutOctets','ifOutUcastPkts']
+disregardCounter = ['sampleType_tag','sourceId', 'counterBlock_tag', 'networkType', 'ifSpeed', 'ifDirection', 'ifStatus', 'ifInBroadcastPkts','ifInUnknownProtos','ifOutMulticastPkts','ifOutBroadcastPkts','ifPromiscuousMode','ifInOctets','ifInUcastPkts']
+relevantKeys = ['ifOutOctets','ifOutUcastPkts']
 timeKey = 'time'
 mega = pow(2,20)
 megaByte = mega/8
