@@ -22,13 +22,8 @@ sudo EXP_DIR=$EXP_DIR $1
 # cleanup mininet
 sudo mn -c
 
-ANALYSIS_DIR=$EXP_DIR/analysis
-mkdir -p $ANALYSIS_DIR
-~/ML-net/decode.py -i $EXP_DIR -o $ANALYSIS_DIR &> $ANALYSIS_DIR/decode.log
-for csv in `ls $ANALYSIS_DIR/*.csv` ; do
-    echo Running SVM analysis for $csv ;
-    ~/ML-net/check_result.sh $csv ;
-    python ~/ML-net/switch_svm.py -i $csv --write-each-class-results &> $csv.result ;
-done
+# run analysis
+EXP_DIR=$EXP_DIR ./run_analysis
+
 
 echo The experiment files can be found in $EXP_DIR
