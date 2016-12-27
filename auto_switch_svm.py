@@ -290,7 +290,7 @@ class SVMClassifier(Classifier):
     def classify(self, x_train, y_train, x_eval, y_eval):
         logging.info("...Start Calculating SVM.")
 
-        clf = autosklearn.classification.AutoSklearnClassifier() 
+        clf = autosklearn.classification.AutoSklearnClassifier(time_left_for_this_task=360,per_run_time_limit=60) 
 
         clf.fit(np.array(x_train), np.array(y_train))
         y_pred = clf.predict(np.array(x_eval))
