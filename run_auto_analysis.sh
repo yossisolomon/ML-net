@@ -11,17 +11,25 @@ else
 fi
 
 ANALYSIS_DIR=$EXP_DIR/auto_analysis
-mkdir -p $ANALYSIS_DIR
-~/ML-net/decode.py -i $EXP_DIR -o $ANALYSIS_DIR &> $ANALYSIS_DIR/decode.log
+TIMESHIFTS="${TIMESHIFTS:-0}"
+
 for csv in `ls $ANALYSIS_DIR/*.csv` ; do
-    echo Running SVM analysis for $csv 
+    echo Running SVM analysis for $csv with TIMESHIFTS=$TIMESHIFTS 
     CHECK=`~/ML-net/check_result.sh $csv`
     echo $CHECK
     if [[  $(echo $CHECK | grep -c "Overload=0") -gt 0 ]]
     then
       echo Skipping this file\'s ML analysis - no overloaded samples
     else
-      python ~/ML-net/auto_switch_svm.py -i $csv --write-each-class-results &> $csv.result 
+      timeshift=0
+      while [ $timeshift -le $TIMESHIFTS ] ; do
+        shiftedcsv=$csv.shift$timeshift
+        python ~/ML-net/shift_first_column.py -i $csv -o $shiftedcsv -s $timeshift
+        csv=$shiftedcsv
+        echo Analysing CSV shifted by $timeshift in $csv
+        python ~/ML-net/auto_switch_svm.py -i $csv --write-each-class-results &> $csv.result 
+        timeshift=$(($timeshift+1))
+      done
     fi
 done
 

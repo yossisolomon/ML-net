@@ -22,8 +22,10 @@ sudo EXP_DIR=$EXP_DIR $1
 # cleanup mininet
 sudo mn -c
 
-# run analysis
-EXP_DIR=$EXP_DIR ./run_analysis.sh
+# run decode
+EXP_DIR=$EXP_DIR ./run_auto_decode.sh
 
+# run analysis
+EXP_DIR=$EXP_DIR ./run_auto_analysis.sh
 
 echo The experiment files can be found in $EXP_DIR
