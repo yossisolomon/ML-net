@@ -292,9 +292,10 @@ class SVMClassifier(Classifier):
 
         clf = autosklearn.classification.AutoSklearnClassifier() 
 
-        clf.fit(x_train, y_train)
-        y_pred = clf.predict(x_eval)
-        accuracy_alg = clf.score(x_eval, y_eval)
+        clf.fit(np.array(x_train), np.array(y_train))
+        y_pred = clf.predict(np.array(x_eval))
+        accuracy_alg = clf.score(np.array(x_eval), np.array(y_eval))
+	logging.info(clf.show_models())
 
         return accuracy_alg, y_pred
 
