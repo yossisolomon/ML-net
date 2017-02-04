@@ -11,7 +11,7 @@ else
 fi
 
 ANALYSIS_DIR=$EXP_DIR/auto_analysis
-TIMESHIFTS="${TIMESHIFTS:-0}"
+TIMESHIFTS="${TIMESHIFTS:-10}"
 
 for csv in `ls $ANALYSIS_DIR/*.csv` ; do
     echo Running SVM analysis for $csv with TIMESHIFTS=$TIMESHIFTS 
