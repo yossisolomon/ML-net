@@ -96,8 +96,10 @@ def setupITG( network ):
 
     # DEBUGGING INFO
     print
-    print "Dumping host connections"
+    print "Dumping network links"
     dumpNodeConnections(network.hosts)
+    dumpNodeConnections(network.switches)
+    dumpNodeConnections(network.controllers)
     print
     print "*** Hosts addresses:"
     print
