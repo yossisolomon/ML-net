@@ -9,9 +9,13 @@ startDatagram ='startDatagram =================================\n'
 endDatagram ='endDatagram   =================================\n'
 startSample = 'startSample ----------------------\n'
 endSample = 'endSample   ----------------------\n'
-disregardCounter = ['sampleType_tag','sourceId', 'counterBlock_tag', 'networkType', 'ifSpeed', 'ifDirection', 'ifStatus', 'ifInBroadcastPkts','ifInUnknownProtos','ifOutMulticastPkts','ifOutBroadcastPkts','ifPromiscuousMode']
-relevantKeys = ['ifOutOctets','ifOutUcastPkts','ifInOctets','ifInUcastPkts']
+csv_start = '''
+startToncepts
+numberOfEntities,'''
+disregardCounter = ['sampleType_tag','sourceId', 'counterBlock_tag', 'networkType', 'ifSpeed', 'ifDirection', 'ifStatus', 'ifInBroadcastPkts','ifInUnknownProtos','ifOutMulticastPkts','ifOutBroadcastPkts','ifPromiscuousMode','ifOutUcastPkts','ifInOctets','ifInUcastPkts']
+relevantKeys = ['ifOutOctets']
 timeKey = 'time'
+portKey = 'port'
 mega = pow(2,20)
 megaByte = mega/8
 
@@ -68,33 +72,64 @@ def get_key_value_from_line(line, delim=' '):
     return split[0] , split[1]
 
 
-def get_relevant_sampling(sample, timestamp):
-    new_sample = {timeKey:timestamp}
+def get_relevant_sampling(sample, name):
+    new_sample = {portKey:name}
     for k in relevantKeys:
         new_sample[k] = sample[k]
     return new_sample
 
 
+def is_active(sample, threshold):
+    byte_cnt = int(sample['ifOutOctets'])
+    return byte_cnt > threshold
+        
 
-
-def get_port_to_samples_map(datagrams, interfaces_to_names):
-    port_to_samples = {}
+def get_time_to_samples_map(datagrams, interfaces_to_names):
+    time_to_samples = {}
     max_time = 0
     min_time = 1000000000000000000
     for d in datagrams:
-        time = d['unixSecondsUTC']
+        time = int(d['unixSecondsUTC'])
         max_time = max(max_time,time)
         min_time = min(min_time,time)
         for s in d['samples']:
             # only accept counter samples which exist in the name mapping
             if s['sampleType'] == 'COUNTERSSAMPLE' and interfaces_to_names.has_key(s['ifIndex']):
-                name = interfaces_to_names[s['ifIndex']]
-                if not port_to_samples.has_key(name):
-                    port_to_samples[name] = [get_relevant_sampling(s,time)]
+                port = interfaces_to_names[s['ifIndex']]
+                if not time_to_samples.has_key(time):
+                    time_to_samples[time] = [get_relevant_sampling(s,port)]
                 else:
-                    port_to_samples[name].append(get_relevant_sampling(s,time))
-    return port_to_samples, min_time, max_time
+                    time_to_samples[time].append(get_relevant_sampling(s,port))
+    return time_to_samples, min_time, max_time
 
+
+def create_sampling_csv(segment_len, segments, port_ids, time_to_samples, min_time, overload_byte_rate):
+    csv = csv_start + str(segments) + os.linesep
+    for segment in xrange(segments):
+        collected_intervals = []
+        currently_active_intervals = {}
+        start = min_time + segment * segment_len
+        end = min_time + (segment+1) * segment_len
+        for i in xrange(start, end):
+            for s in time_to_samples[i]:
+                port = s[portKey]
+                if is_active(s,overload_byte_rate):
+                    if not currently_active_intervals.has_key(port):
+                        currently_active_intervals[port] = i
+                elif currently_active_intervals.has_key(port):
+                        collected_intervals.append({portKey:port, 'start':currently_active_intervals.pop(port) - start + 1 , 'end':i - start + 1})
+        for k,v in currently_active_intervals.items():
+            collected_intervals.append({portKey:k, 'start': v - start + 1, 'end': end - start + 1})
+        csv += str(segment+1) + ',' + str(segment) + ';' + os.linesep
+        csv += ';'.join(map(lambda x: str(x['start']) + ',' + str(x['end']) + ',' + port_ids[x[portKey]],collected_intervals)) + os.linesep
+   return csv
+
+
+def write_csv_to_file(csv_filename, csv):
+    logging.info("Writing csv to " + csv_filename)
+    logging.debug(csv)
+    with open(csv_filename,'w') as f:
+        f.write(csv)
 
 
 def parse_args():
@@ -112,31 +147,6 @@ def parse_args():
     return args
 
 
-def create_sampling_csv(index_to_samples,sorted_if_names,destIfName,overloadByteRate):
-    csv = ''
-    for i in sorted(index_to_samples.keys(),key=int):
-        values = []
-        for eth in sorted_if_names:
-            values.append(eth)
-            values.append(index_to_samples[i][eth][timeKey])
-            for k in relevantKeys:
-                values.append(index_to_samples[i][eth][k])
-                delta = get_delta(eth, i, index_to_samples, k)
-                values.append(delta)
-        csv += ', '.join(values) + os.linesep
-    return csv
-
-
-def write_interface_csvs_to_files(filtered_index_to_samples, sorted_if_names, overload_byte_rate, output_folder):
-    for interf in sorted_if_names:
-        csv = create_sampling_csv(filtered_index_to_samples, sorted_if_names, interf, overload_byte_rate)
-        csv_filename = pj(output_folder, "sflow-" + interf + ".csv")
-        logging.info("Writing csv for " + interf + " to " + csv_filename)
-        logging.debug(csv)
-        with open(csv_filename,'w') as f:
-            f.write(csv)
-
-
 def main():
     args = parse_args()
 
@@ -150,18 +160,26 @@ def main():
 
     interfaces_to_names = get_interfaces_to_names_map(args.input_dir)
     relevant_interfaces = dict(filter(lambda (i,n): "-eth" in n and not "root" in n,interfaces_to_names.items()))
-    
+
     datagrams = get_datagrams(args.input_dir)
-    port_to_samples, min_time, max_time = get_port_to_samples_map(datagrams, relevant_interfaces)
+    time_to_samples, min_time, max_time = get_time_to_samples_map(datagrams, relevant_interfaces)
 
     experiment_len = max_time - min_time
     segment_len = experiment_len / args.segments
-    
-    for i in xrange(min_time, min_time + segment_len * args.segments):
-        # split to the different intervals
-           
-	
-    
+
+    port_ids = {}
+    id = 0
+    for port in relevant_interfaces.values():
+        id += 1
+        port_ids[port] = str(id)
+    logging.info(port_ids)
+
+    csv = create_sampling_csv(segment_len, args.segments, port_ids, time_to_samples, min_time, args.overload_byte_rate)
+
+    csv_filename = pj(args.output_dir, "segments-decoded.csv")
+
+    write_csv_to_file(csv_filename, csv)
+
 if __name__ == '__main__':
     main()
 
