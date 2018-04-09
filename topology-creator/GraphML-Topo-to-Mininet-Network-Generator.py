@@ -227,9 +227,9 @@ def add_switches_with_linked_host(id_node_name_dict):
         id = str(i)
         name = id_node_name_dict[id]
         # create switch
-        output += "        %s = self.addSwitch( 's%s' )\n"%(name,id)
+        output += "        %s = self.addSwitch( '%s' )\n"%(name,name)
         # create corresponding host
-        output += "        %s_host = self.addHost( 'h%s' )\n"%(name,id)
+        output += "        %s_host = self.addHost( '%s-host' )\n"%(name,name)
         # link each switch and its host...
         output += "        self.addLink(%s, %s_host)\n"%(name,name)
     return output
