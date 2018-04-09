@@ -12,9 +12,10 @@ fi
 
 ANALYSIS_DIR=$EXP_DIR/auto_analysis
 TIMESHIFTS="${TIMESHIFTS:-10}"
-
+CPU_NUM=$( grep processor /proc/cpuinfo | wc -l )
+PARALLELISM=$(( $CPU_NUM / 2 ))
 for csv in `ls $ANALYSIS_DIR/*.csv` ; do
-    echo Running SVM analysis for $csv with TIMESHIFTS=$TIMESHIFTS 
+    echo Running analysis for $csv with TIMESHIFTS=$TIMESHIFTS
     CHECK=`~/ML-net/check_result.sh $csv`
     echo $CHECK
     if [[  $(echo $CHECK | grep -c "Overload=0") -gt 0 ]]
@@ -25,12 +26,13 @@ for csv in `ls $ANALYSIS_DIR/*.csv` ; do
       while [ $timeshift -le $TIMESHIFTS ] ; do
         shiftedcsv=$csv.shift$timeshift
         python ~/ML-net/shift_first_column.py -i $csv -o $shiftedcsv -s $timeshift
-        csv=$shiftedcsv
-        echo Analysing CSV shifted by $timeshift in $csv
-        python ~/ML-net/auto_switch_svm.py -i $csv --write-each-class-results &> $csv.result 
+        echo Analysing CSV shifted by $timeshift in $shiftedcsv
+        sem -j$PARALLELISM --id $$ python ~/ML-net/auto_switch_ml.py -i $shiftedcsv &> $shiftedcsv.result
         timeshift=$(($timeshift+1))
       done
     fi
 done
+
+sem --wait --id $$
 
 echo The analysis files can be found in $ANALYSIS_DIR
