@@ -21,7 +21,8 @@ mkdir -p $EXP_DIR
 mv $1 $EXP_DIR
 
 # run experiment
-sudo EXP_DIR=$EXP_DIR $1
+sudo EXP_DIR=$EXP_DIR $1 &> $EXP_DIR/experiment.log
+
 # cleanup mininet
 sudo mn -c
 
