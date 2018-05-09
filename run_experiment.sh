@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+set -x
 
 if [[ -x $1 ]]
 then
@@ -18,7 +19,7 @@ EXP_DIR=~/ML-net/results/exp-`date  +%Y%m%d-%H%M%S`
 mkdir -p $EXP_DIR
 
 # backup experiment executable
-mv $1 $EXP_DIR
+cp $1 $EXP_DIR
 
 # run experiment
 sudo EXP_DIR=$EXP_DIR $1 &> $EXP_DIR/experiment.log
