@@ -223,15 +223,27 @@ def get_dicts_from_node_set(node_set, index_values_set, ns = "{http://graphml.gr
     return id_node_name_dict, id_longitude_dict, id_latitude_dict
 
 
+def int2dpid(dpid):
+    try:
+        dpid = hex(dpid)[2:]
+        dpid = '0' * ( 16 - len( dpid ) ) + dpid
+        return dpid
+    except IndexError:
+        raise Exception('Unable to derive default datapath ID - '
+                        'please either specify a dpid or use a '
+                        'canonical switch name such as s23.' )
+
+
 def add_switches_with_linked_host(id_node_name_dict):
     output = ''
     for i in range(0, len(id_node_name_dict)):
         id = str(i)
         name = id_node_name_dict[id]
+        short_name = name[0:4]
         # create switch
-        output += "        %s = self.addSwitch( '%s' )\n"%(name,name)
+        output += "        %s = self.addSwitch( '%s' , dpid='%s')\n"%(name,short_name,int2dpid(i))
         # create corresponding host
-        output += "        %s_host = self.addHost( '%s-host' )\n"%(name,name)
+        output += "        %s_host = self.addHost( '%s-HST' )\n"%(name,short_name)
         # link each switch and its host...
         output += "        self.addLink(%s, %s_host)\n"%(name,name)
     return output
