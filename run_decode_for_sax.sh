@@ -23,11 +23,12 @@ SAX_RESULT=$ANALYSIS_DIR/decoded-exp-result-for-sax.csv
 java -jar spmf.jar run Convert_time_series_to_sequence_database_using_SAX $DECODE_FOR_SAX_RESULT $SAX_RESULT $EXP_SAMPLE_COUNT $SAX_SYMBOLS , true
 
 STREAMS_FILENAME=$ANALYSIS_DIR/streams_for_mining.txt
-NUM_OF_STREAMS=20
-~/ML-net/decode_sax.py -i $SAX_RESULT -s $STREAMS_FILENAME -e events_encoding.json -p $NUM_OF_STREAMS &> $ANALYSIS_DIR/decode_sax.log
+EVENTS_FILENAME=$ANALYSIS_DIR/events_encoding.json
+NUM_OF_STREAMS=10
+~/ML-net/decode_sax.py -i $SAX_RESULT -s $STREAMS_FILENAME -e $EVENTS_FILENAME -p $NUM_OF_STREAMS &> $ANALYSIS_DIR/decode_sax.log
 
 DECODE_ERMINER_RESULT=$ANALYSIS_DIR/decoded-exp-erminer-result.txt
 
-java -jar spmf.jar run ERMiner $STREAMS_FILENAME $DECODE_ERMINER_RESULT 95% 95%
+java -jar spmf.jar run ERMiner $STREAMS_FILENAME $DECODE_ERMINER_RESULT 75% 75%
 
 echo The decoded file can be found in $ANALYSIS_DIR

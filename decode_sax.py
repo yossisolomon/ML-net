@@ -2,6 +2,7 @@
 import argparse
 import logging
 import json
+import os
 
 
 SAME_KEY = 'SAME'
@@ -53,6 +54,8 @@ def time_series_to_asc_desc_events(k, time_series):
             events.append(desc)
         else:
             events.append(asc)
+        prev = e
+    logging.debug(events)
     return events, [asc,desc]
 
 
@@ -60,29 +63,31 @@ def merge_asc_desc_events_to_single_timeline(interfaces_to_asc_desc_events):
     sorted_interface_names = sorted(interfaces_to_asc_desc_events.keys())
     timeline = []
     for i in xrange(len(interfaces_to_asc_desc_events[sorted_interface_names[0]])):
+        sequence = []
         for k in sorted_interface_names:
             value = interfaces_to_asc_desc_events[k][i]
             if not value == SAME_KEY:
-                timeline.append(value)
+                sequence.append(value)
+        if len(sequence) > 0:
+            timeline.append(sequence)
+    logging.info("Ommiting first and last itemset as they corrupt the analysis:" + os.linesep
+                 + "First itemset was - " + str(timeline[0]) + os.linesep
+                 + "Last itemset was - " + str(timeline[-1]))
+    timeline = timeline[1:-2]
     return timeline
 
 
 def encode_asc_desc_timeline(asc_desc_events_timeline, interfaces_asc_desc_events_to_integers):
-   encoded_timeline = []
-   for e in asc_desc_events_timeline:
-       encoded_timeline.append(interfaces_asc_desc_events_to_integers[e])
-   return encoded_timeline
-
-
-def encode_timeline(asc_desc_events_timeline, interfaces_asc_desc_events_to_integers):
-    encoded_timeline = [str(interfaces_asc_desc_events_to_integers[e]) for e in asc_desc_events_timeline]
+    encoded_timeline = []
+    for s in asc_desc_events_timeline:
+        encoded_timeline.append([str(interfaces_asc_desc_events_to_integers[e]) for e in s])
     return encoded_timeline
 
 
-def split_timeline_in_equal_parts(asc_desc_events_timeline, parts):
-    length = len(asc_desc_events_timeline)
+def split_timeline_in_equal_parts(timeline, parts):
+    length = len(timeline)
     n = length / parts
-    split_timeline = [asc_desc_events_timeline[i:i + n] for i in xrange(0, length, n)]
+    split_timeline = [timeline[i:i + n] for i in xrange(0, length, n)]
     return split_timeline
 
 
@@ -92,7 +97,11 @@ def create_event_streams_in_spmf_format(event_streams):
     for s in event_streams:
         stream_str = '@NAME=STREAM' + str(curr) + '\n'
         curr += 1
-        stream_str += ' -1 '.join(s) + ' -1 -2 \n'
+        seqs = []
+        for seq in s:
+            seqs.append(' '.join(seq))
+        logging.debug(seqs)
+        stream_str += ' -1 '.join(seqs) + ' -1 -2 \n'
         spmf_str += stream_str
     return spmf_str
 
@@ -139,7 +148,7 @@ def main():
     asc_desc_events_timeline = merge_asc_desc_events_to_single_timeline(interfaces_to_asc_desc_events)
 
     interfaces_asc_desc_events_to_integers = {k: v for v, k in enumerate(interfaces_asc_desc_events_list)}
-    encoded_timeline = encode_timeline(asc_desc_events_timeline, interfaces_asc_desc_events_to_integers)
+    encoded_timeline = encode_asc_desc_timeline(asc_desc_events_timeline, interfaces_asc_desc_events_to_integers)
 
     event_streams = split_timeline_in_equal_parts(encoded_timeline, args.parts)
 
