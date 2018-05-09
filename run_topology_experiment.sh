@@ -13,7 +13,7 @@ fi
 
 EXP_PY=/tmp/`basename $GRAPHML`-topo.py
 # generate experiment
-./topology-creator/GraphML-Topo-to-Mininet-Network-Generator.py -i $GRAPHML -o $EXP_PY $@
+./topology-creator/GraphML-Topo-to-Mininet-Network-Generator.py -i $GRAPHML -o $EXP_PY -c 127.0.0.1
 
 # run experiment
 ./run_experiment.sh $EXP_PY
